@@ -9,7 +9,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import config as cnfg
 from dotenv import load_dotenv
 import os
-
+from aiohttp import web
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -63,7 +63,19 @@ async def cmd_back(callback: types.CallbackQuery):
     await callback.answer()
     await callback.message.edit_caption(caption=cnfg.main_menu_text, parse_mode="HTML", reply_markup=cnfg.main_menu_markup.as_markup())
 
+# Dummy web server
+async def handle(request):
+    return web.Response(text="OK")
+
 async def main():
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", int(os.environ.get("PORT", 10000)))
+    await site.start()
+
+    # Start polling in background
     await bot(DeleteWebhook(drop_pending_updates=True))
     await dp.start_polling(bot)
 
